@@ -1,0 +1,96 @@
+body {
+  overflow: hidden;
+}
+
+.leftEdgeVisibleTimeline {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  z-index: 2;
+  color: #3C4A57;
+  font-size: 10px;
+  font-family: 'Roboto';
+}
+
+.rightEdgeVisibleTimeline {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  z-index: 2;
+  color: #3C4A57;
+  font-size: 10px;
+  font-family: 'Roboto';
+}
+
+.currentPlayPosition {
+  position: absolute;
+  top: 0;
+  z-index: 1;
+
+  .runner {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 16px;
+    background: #EB5757;
+  }
+
+  .time {
+    position: absolute;
+    left: -17px;
+    top: 16px;
+    color: #fff;
+    font-size: 10px;
+  }
+}
+
+.timelineContainer {
+  background: #34404A;
+  touch-action: none;
+  overflow: hidden;
+  position: relative;
+  cursor: ew-resize;
+}
+
+.body {
+  touch-action: none;
+}
+
+.timeline {
+  width: 100%;
+  touch-action: none;
+  position: relative;
+  transform-origin: 0 0;
+  //transition: all 500ms linear;
+}
+
+.segments {
+  background: #C2C2C2;
+  height: 16px;
+  width: 100%;
+}
+
+.contextSegments {
+  height: 8px;
+  width: 100%;
+  position: relative;
+}
+
+.videoSegments {
+  height: 8px;
+  width: 100%;
+}
+
+.ruler {
+  height: 12px;
+  display: flex;
+  justify-content: space-around;
+  transition: all 100ms ease-in-out;
+
+  .slicing {
+    height: 10px;
+    width: 1px;
+    background: #7E7E7E;
+  }
+}
