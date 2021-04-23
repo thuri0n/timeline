@@ -8,8 +8,8 @@ import { SVG } from '@svgdotjs/svg.js'
 const startDay = '20.04.2021'
 const endDay = '21.04.2021'
 
-const startTime = `${startDay} 13:08:01:000`
-const endTime = `${endDay} 13:08:02:001`
+const startTime = `${startDay} 12:00:00:000`
+const endTime = `${endDay} 12:00:00:000`
 
 const videoSegments = [
   {
@@ -36,6 +36,10 @@ const contextSegments = [
     end: `${startDay} 19:15:02.000`
   },
   {
+    start: `${startDay} 21:00:01.000`,
+    end: `${startDay} 21:05:01.000`
+  },
+  {
     start: `${endDay} 00:00:01.000`,
     end: `${endDay} 03:15:02.000`
   },
@@ -59,7 +63,7 @@ const segmentDuration = (endSegment: DateAPIString, startSegment: DateAPIString)
 
 const fullDurationVideo = segmentDuration(endTime, startTime)
 
-const zoomIntensity = 0.01;
+const zoomIntensity = 0.010;
 const MAX_SCALE = 24 * 12; // макс зум 5 мин; 12 - кол - во 5 минут в часах
 const MIN_SCALE = 1.00
 
@@ -138,9 +142,9 @@ function App() {
     //   }
     // }
 
-    setInterval(() => {
-      setTimePosition(moment().format(API_DATE_FORMAT))
-    }, 1000)
+    // setInterval(() => {
+    //   setTimePosition(moment().format(API_DATE_FORMAT))
+    // }, 1000)
   }, [])
 
   useEffect(() => {
@@ -159,9 +163,10 @@ function App() {
   //handleWheelEvent в useCallback
   const handleWheelEvent = (ev: React.WheelEvent): void => {
     if(!timeLineRef || !timeLineRef.current) return
-    if(!timeLineContainerRef || !timeLineContainerRef.current) return
+    // if(!timeLineContainerRef || !timeLineContainerRef.current) return
+    if(!svgRef || !svgRef.current) return
 
-    const zoomPointX = ev.pageX - timeLineContainerRef.current.offsetLeft
+    const zoomPointX = ev.pageX - timeLineRef.current.offsetLeft
 
     ev.preventDefault()
 
@@ -223,11 +228,6 @@ function App() {
       setSlicingScaleX(1.00)
     }, 300))
   }
-
-  const handleWheelSvgEvent = (ev: React.WheelEvent): void => {
-    const delta = Math.max(-1, Math.min(1, ev.deltaY))
-  }
-
   /**
    * сегмент = 172801001
    * начало сегмента = 1618394881000
@@ -249,6 +249,16 @@ function App() {
 
   }, [])
 
+  const xStartVisibleSegment = Math.abs(data.positionX)
+  const xEndVisibleSegment = timelineWidth * data.scaleX - (xStartVisibleSegment + timelineWidth)
+
+  // сколько в масштабе стоит 1 пиксель в полной продолжительности видео
+  const pixelToTimeRatio = Math.ceil(fullDurationVideo / (timelineWidth * data.scaleX))
+
+  const visibleStart = moment(moment(startTime, API_DATE_FORMAT).valueOf() + Math.ceil(xStartVisibleSegment * pixelToTimeRatio)).format(API_DATE_FORMAT)
+  const visibleEnd = moment(moment(endTime, API_DATE_FORMAT).valueOf() - Math.ceil(xEndVisibleSegment * pixelToTimeRatio)).format(API_DATE_FORMAT)
+  console.log('endTime', moment(endTime, API_DATE_FORMAT).valueOf())
+  console.log('pixelToTimeRatio', Math.ceil(xEndVisibleSegment * pixelToTimeRatio))
   return (
     <div className="App">
       <div>
@@ -278,108 +288,92 @@ function App() {
       </pre>
       {/*<div>Видимая ширина = {(((timelineWidth * data.scaleX) - data.positionX) / data.scaleX) - timelineWidth  }</div>*/}
 
-      <div className={styles.timelineContainer} ref={timeLineContainerRef} onWheel={handleWheelEvent}>
-        <div className={styles.leftEdgeVisibleTimeline}>{leftVisibleStartTimeline}</div>
-        <div className={styles.rightEdgeVisibleTimeline}>{rightVisibleEndTimeline}</div>
-        <div className={styles.currentPlayPosition} style={{
-          left: `${leftRunnerPositionPercent.toFixed(3)}%`,
-        }}>
-          <div className={styles.runner} />
-          <div className={styles.time}>
-            {moment(timePosition, API_DATE_FORMAT).format('HH:mm:ss')}
-          </div>
-        </div>
-        <div id={'timeline'} ref={timeLineRef} className={styles.timeline} style={{
-          transform: `translateX(${data.positionX}px) scaleX(${data.scaleX})`,
-        }}>
-          <div className={styles.segments}>
-            <div className={styles.contextSegments}>
-              {contextSegments.map((item, key) => {
-                // fullDurationVideo относительно видимой части
-                const widthSegment = (segmentDuration(item.end, item.start) / fullDurationVideo) * 100
-                // start относительно видимой части
-                const leftOffset = (segmentDuration(item.start, startTime) / fullDurationVideo) * 100
-
-                return (
-                    <div key={key} style={{
-                      height: '100%',
-                      width: `${widthSegment.toFixed(2)}%`,
-                      backgroundColor: '#40a5bd',
-                      left: `${leftOffset.toFixed(5)}%`,
-                      top: 0,
-                      position: 'absolute'
-                    }}>
-                    </div>
-                )
-              })}
-            </div>
-            <div className={styles.videoSegments}>
-
-            </div>
-          </div>
-        </div>
-        <div className={styles.ruler} style={{
-          transform: `scaleX(${slicingScaleX})`,
-          transition: slicingScaleX  === 1 ? `all 100ms linear` : `all 0ms linear`
-        }}>
-          {new Array(24).fill('').map((item, key) => <div key={key} className={styles.slicing} />)}
-        </div>
-      </div>
-      {/*<div>*/}
-      {/*  <div>тут канва</div>*/}
-      {/*  <SimpleCanvasExample />*/}
-      {/*  <div>*/}
-      {/*    <canvas ref={canvasRef} width={timelineWidth} height={16} />*/}
-      {/*  </div>*/}
-      {/*</div>*/}
       <div>
-        {/*svg*/}
-        SVG
-        <svg width="1327"
-             ref={svgRef}
-             height="16"
-             viewBox="0 0 1327 16"
-             fill="#C2C2C2"
-             xmlns="http://www.w3.org/2000/svg">
-          {/*<g transform={'translate(-450 0) scale(2 0)'}>*/}
-          {/*  */}
-          {/*</g>*/}
-          <rect width={`1327`} height="16" fill="#C2C2C2"/>
-          <g className={'contextSegments'}
-             transform={`translate(${data.positionX}) scale(${data.scaleX}, 1)`}>
-            {contextSegments.map(item => {
-              const widthSegment = timelineWidth * ((segmentDuration(item.end, item.start) / fullDurationVideo) * 100) / 100
-              const leftOffset = timelineWidth * ((segmentDuration(item.start, startTime) / fullDurationVideo) * 100) / 100
+        <div>
+          Начало {visibleStart}
+        </div>
+        <div>
+          Конец {visibleEnd}
+        </div>
+        <div ref={timeLineRef} onWheel={handleWheelEvent}>
+          <svg width={`${timelineWidth}`}
+               ref={svgRef}
+               height="26"
+               viewBox={`0 0 ${timelineWidth} 26`}
+               fill="#C2C2C2"
+               xmlns="http://www.w3.org/2000/svg">
+            <rect width={`${timelineWidth}`} height="26" fill="#34404A"/>
+            <rect width={`${timelineWidth}`} height="16" fill="#C2C2C2"/>
+            <g className={'slider'}>
+              <rect width={`3`} height="16" x={150} fill="#EB5757"/>
+            </g>
+            <g className={'contextSegments'}
+               transform={`translate(${data.positionX}) scale(${data.scaleX}, 1)`}>
+              {contextSegments.map(item => {
+                const widthSegment = timelineWidth * ((segmentDuration(item.end, item.start) / fullDurationVideo) * 100) / 100
+                const leftOffset = timelineWidth * ((segmentDuration(item.start, startTime) / fullDurationVideo) * 100) / 100
+                // сегменты с контекстами
+                return <rect
+                    opacity="0.7"
+                    y="0"
+                    height="8"
+                    fill="#0098BA"
+                    x={leftOffset}
+                    width={widthSegment}
+                />
+              })}
+            </g>
+            <g className={'videoSegments'}
+               transform={`translate(${data.positionX}) scale(${data.scaleX}, 1)`}>
+              {videoSegments.map(item => {
+                const widthSegment = timelineWidth * ((segmentDuration(item.end, item.start) / fullDurationVideo) * 100) / 100
+                const leftOffset = timelineWidth * ((segmentDuration(item.start, startTime) / fullDurationVideo) * 100) / 100
+                // сегменты с пропуском видео
 
-              return <rect
-                  opacity="0.7"
-                  y="0"
-                  height="8"
-                  fill="#0098BA"
-                  x={leftOffset}
-                  width={widthSegment}
-              />
-            })}
-            {/*<rect opacity="0.7" y="0" width="562" height="8" fill="#0098BA"/>*/}
-            {/*<rect opacity="0.7" x="595" y="0" width="88" height="8" fill="#0098BA"/>*/}
-          </g>
-          <g className={'videoSegments'}
-             transform={`translate(${data.positionX}) scale(${data.scaleX}, 1)`}>
-            {videoSegments.map(item => {
-              const widthSegment = timelineWidth * ((segmentDuration(item.end, item.start) / fullDurationVideo) * 100) / 100
-              const leftOffset = timelineWidth * ((segmentDuration(item.start, startTime) / fullDurationVideo) * 100) / 100
+                return <rect
+                    opacity="0.7"
+                    y="0"
+                    height="16"
+                    fill="#768089"
+                    x={leftOffset}
+                    width={widthSegment}
+                />
+              })}
+            </g>
+            <g clipPath="url(#clip0)">
+              <line x1="28.5" y1="18" x2="28.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="250.5" y1="18" x2="250.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="475.5" y1="18" x2="475.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="139.5" y1="18" x2="139.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="364.5" y1="18" x2="364.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="586.5" y1="18" x2="586.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="642.5" y1="18" x2="642.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="56.5" y1="18" x2="56.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="278.5" y1="18" x2="278.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="503.5" y1="18" x2="503.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="167.5" y1="18" x2="167.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="392.5" y1="18" x2="392.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="614.5" y1="18" x2="614.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="0.5" y1="18" x2="0.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="223.5" y1="18" x2="223.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="447.5" y1="18" x2="447.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="111.5" y1="18" x2="111.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="336.5" y1="18" x2="336.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="559.5" y1="18" x2="559.5" y2="23" stroke="#7E7E7E"/>
+              <line x1="83.5" y1="18" x2="83.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="306.5" y1="18" x2="306.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="531.5" y1="18" x2="531.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="195.5" y1="18" x2="195.5" y2="28" stroke="#7E7E7E"/>
+              <line x1="419.5" y1="18" x2="419.5" y2="28" stroke="#7E7E7E"/>
+            </g>
+            <defs>
+              <clipPath id="clip0">
+                <rect width={`${timelineWidth}`} height="10" fill="white" transform="translate(0 18)"/>
+              </clipPath>
+            </defs>
+          </svg>
 
-              return <rect
-                  opacity="0.7"
-                  y="0"
-                  height="16"
-                  fill="#768089"
-                  x={leftOffset}
-                  width={widthSegment}
-              />
-            })}
-          </g>
-        </svg>
+        </div>
       </div>
     </div>
   );
