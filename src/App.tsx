@@ -70,7 +70,7 @@ const MIN_SCALE = 1.00
 
 function App() {
   return (
-    <div className="App">
+    <div className={styles.App}>
 
       <SimpleCanvasExample />
 
