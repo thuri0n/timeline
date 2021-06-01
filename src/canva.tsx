@@ -7,7 +7,7 @@ const startDay = '20.04.2021'
 const endDay = '21.04.2021'
 
 const startTime = `${startDay} 13:08:01:000`
-const endTime = `${endDay} 13:08:02:001`
+const endTime = `${endDay} 13:08:01:000`
 
 // где присутсвует видео
 const videoSegments = [
@@ -27,8 +27,8 @@ const contextSegments = [
         end: `${startDay} 14:15:02.000`
     },
     {
-        start: `${startDay} 14:16:01.000`,
-        end: `${startDay} 14:18:02.000`
+        start: `${startDay} 14:15:00.000`,
+        end: `${startDay} 14:19:30.000`
     },
     {
         start: `${startDay} 18:00:01.000`,
@@ -78,6 +78,43 @@ const durationZoomLevel = {
 let scaleBy = 1.1;
 const height = 26
 
+const getPositionSegment = (data: {
+    positionMs: number,
+    startMs: number
+    endMs: number
+    durationMs: number,
+    width: number,
+}): {
+    scaleX: number,
+    positionX: number,
+} => {
+    // durationMs: 300000
+    // endMs: 1618999681000
+    // positionMs: 1618963922000
+    // startMs: 1618913281000
+    // width: 1327
+
+    const scaleX = data.durationMs / data.width // 226.07385079125848
+
+    const fullDurationInMs = data.endMs - data.startMs // 86400000
+    const offsetMs = data.startMs - data.positionMs // -50641000
+    const pixelToMillisecondRatio = Math.floor(fullDurationInMs / (data.width * scaleX)) // 288 ms in 1 px (scaled!)
+    const positionX = (offsetMs / pixelToMillisecondRatio) / pixelToMillisecondRatio // 175836.80555555556
+    // ~ -3480.6242669554013
+
+    console.log(data)
+    console.log('scaleX', scaleX)
+    console.log('fullDurationInMs', fullDurationInMs)
+    console.log('pixelToMillisecondRatio', pixelToMillisecondRatio)
+    console.log('startOffsetMs', offsetMs)
+    console.log('positionX', positionX)
+
+    return  {
+        scaleX,
+        positionX
+    }
+}
+
 
 const SimpleCanvasExample: React.FC<{}> = () => {
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -89,8 +126,21 @@ const SimpleCanvasExample: React.FC<{}> = () => {
     useEffect(() => {
         if(!layerRef || !layerRef.current) return
         if(!stageRef || !stageRef.current) return
+        console.log('pos =>', moment('20.04.2021 14:14:30.000', API_DATE_FORMAT).valueOf())
+        console.log('start =>', moment(startTime, API_DATE_FORMAT).valueOf())
+        console.log('end =>', moment(endTime, API_DATE_FORMAT).valueOf())
+        console.log(width)
+        const test = getPositionSegment({
+            positionMs: moment('21.04.2021 03:12:02.000', API_DATE_FORMAT).valueOf(),
+            startMs: moment(startTime, API_DATE_FORMAT).valueOf(),
+            endMs: moment(endTime, API_DATE_FORMAT).valueOf(),
+            durationMs: 300000,
+            width
+        })
+        console.log(test)
 
-        layerRef.current.scale({ x: 1, y: 1 });
+        layerRef.current.scaleX(test.scaleX);
+        layerRef.current.position({ x: -test.positionX, y: 0 });
     }, [])
 
 
@@ -123,96 +173,103 @@ const SimpleCanvasExample: React.FC<{}> = () => {
 
         // if(posX < 0) posX = 0
         //
-        // if(posX + width * newScale < width) {
-        //     posX = -width * (newScale - 1)
-        // }
+        if(posX + width * newScale < width) {
+            posX = -width * (newScale - 1)
+        }
 
         let newPos = {
             x: posX,
             y: 0,
         };
 
-        console.table({
-            pointerX: pointer?.x,
-            mousePointToX: mousePointTo.x,
-            newScale: newScale,
-            posX: posX,
-            width: width
-        })
+        // console.table({
+        //     pointerX: pointer?.x,
+        //     mousePointToX: mousePointTo.x,
+        //     newScale: newScale,
+        //     posX: posX,
+        //     width: width
+        // })
+        console.log('posx =>', posX)
 
         layerRef.current.position(newPos);
     }
 
     const width = window.innerWidth
     const width24h = 86400000 // 24 часа в милисекундах
-
-    //     <Rect
-    // x={0}
-    // y={0}
-    // width={window.innerWidth}
-    // height={height}
-    // fill={'#34404A'}
-    // />
-    // {new Array(24).fill('').map((item, index) => {
-    //     const positionX = window.innerWidth / segments * index
-    //     const isOdd = index % 2 !== 0
-    //     const heightLine = isOdd ? height - 10 : height / 2
-    //
-    //     return (
-    //         <Rect
-    //             x={positionX}
-    //             y={0}
-    //             width={1}
-    //             height={heightLine}
-    //             fill={'#7E7E7E'}
-    //         />
-    //     )
-    // })}
+    const secInPixel = (width24h / 1000) / width
 
     const getPointRelativeToWidth = (point: number) => {
         return width * (point / width24h * 100) / 100
     }
 
+    const segmentsEveryHalfMinute = 24 * 60 * 2
+
     return (
-        <Stage width={width} height={height} ref={stageRef}>
-            <Layer ref={layerRef} onWheel={handleWheel}>
-                <Rect x={0} y={0} width={width} height={8} fill={'#C2C2C2'} />
-                <Rect x={0} y={8} width={width} height={8} fill={'#768089'} />
-                <Rect x={0} y={16} width={width} height={10} fill={'#34404A'} />
+        <>
+            <div>
+                start = {startTime}
+                <br/>
+                end = {endTime}
+                <br/>
+                width = {width}
+            </div>
+            <Stage width={width} height={height} ref={stageRef}>
+                <Layer ref={layerRef} onWheel={handleWheel}>
+                    <Rect x={0} y={0} width={width} height={8} fill={'#C2C2C2'} />
+                    <Rect x={0} y={8} width={width} height={8} fill={'#768089'} />
 
-                {contextSegments.map((item, index) => {
-                    const widthRect = getPointRelativeToWidth(segmentDuration(item.end, item.start))
-                    const xPos = getPointRelativeToWidth(segmentDuration(item.start, startTime))
+                    {contextSegments.map((item, index) => {
+                        const widthRect = getPointRelativeToWidth(segmentDuration(item.end, item.start))
+                        const xPos = getPointRelativeToWidth(segmentDuration(item.start, startTime))
 
-                    return (
-                        <Rect
-                            key={index}
-                            x={xPos}
-                            y={0}
-                            width={widthRect}
-                            height={8}
-                            fill={'#0098BA'}
-                        />
-                    )
-                })}
+                        return (
+                            <Rect
+                                key={index}
+                                x={xPos}
+                                y={0}
+                                width={widthRect}
+                                height={8}
+                                fill={'#0098BA'}
+                            />
+                        )
+                    })}
 
-                {videoSegments.map((item, index) => {
-                    const widthRect = getPointRelativeToWidth(segmentDuration(item.end, item.start))
-                    const xPos = getPointRelativeToWidth(segmentDuration(item.start, startTime))
+                    {videoSegments.map((item, index) => {
+                        const widthRect = getPointRelativeToWidth(segmentDuration(item.end, item.start))
+                        const xPos = getPointRelativeToWidth(segmentDuration(item.start, startTime))
 
-                    return (
-                        <Rect
-                            key={index}
-                            x={xPos}
-                            y={8}
-                            width={widthRect}
-                            height={8}
-                            fill={'#c2c2c2'}
-                        />
-                    )
-                })}
-            </Layer>
-        </Stage>
+                        return (
+                            <Rect
+                                key={index}
+                                x={xPos}
+                                y={8}
+                                width={widthRect}
+                                height={8}
+                                fill={'#c2c2c2'}
+                            />
+                        )
+                    })}
+
+                    <Rect x={0} y={16} width={width} height={10} fill={'#34404A'} />
+
+                    {new Array(segmentsEveryHalfMinute).fill('').map((item, index) => {
+                        const isEven = (index + 1) % 2 === 0
+
+                        return (
+                            <Rect
+                                scale={{ x: 1, y: 1}}
+                                key={index}
+                                x={segmentsEveryHalfMinute / width * index}
+                                y={16}
+                                width={1}
+                                height={isEven ? 5 : 10}
+                                fill={'#7E7E7E'}
+                            />
+                        )
+                    })}
+                </Layer>
+            </Stage>
+        </>
     )
 };
 
