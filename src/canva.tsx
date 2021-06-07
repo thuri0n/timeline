@@ -23,20 +23,24 @@ const videoSegments = [
 
 const contextSegments = [
     {
+        start: `${startDay} 13:09:01:000`,
+        end: `${startDay} 13:11:01:000`
+    },
+    {
         start: `${startDay} 14:00:01.000`,
         end: `${startDay} 14:15:02.000`
     },
     {
-        start: `${startDay} 14:15:00.000`,
-        end: `${startDay} 14:19:30.000`
+        start: `${startDay} 16:15:00.000`,
+        end: `${startDay} 16:19:30.000`
     },
     {
         start: `${startDay} 18:00:01.000`,
         end: `${startDay} 19:15:02.000`
     },
     {
-        start: `${endDay} 00:00:01.000`,
-        end: `${endDay} 03:15:02.000`
+        start: `${endDay} 01:09:01.000`,
+        end: `${endDay} 01:11:01.000`
     },
     {
         start: `${endDay} 03:16:02.000`,
@@ -75,14 +79,14 @@ const durationZoomLevel = {
     86400000: 1,
 }
 
-let scaleBy = 1.1;
+let scaleBy = 1.01;
 const height = 26
 
 const getPositionSegment = (data: {
     positionMs: number,
     startMs: number
     endMs: number
-    durationMs: number,
+    scaleX: number,
     width: number,
 }): {
     scaleX: number,
@@ -93,116 +97,108 @@ const getPositionSegment = (data: {
     // positionMs: 1618963922000
     // startMs: 1618913281000
     // width: 1327
-
-    const scaleX = data.durationMs / data.width // 226.07385079125848
-
-    const fullDurationInMs = data.endMs - data.startMs // 86400000
-    const offsetMs = data.startMs - data.positionMs // -50641000
-    const pixelToMillisecondRatio = Math.floor(fullDurationInMs / (data.width * scaleX)) // 288 ms in 1 px (scaled!)
-    const positionX = (offsetMs / pixelToMillisecondRatio) / pixelToMillisecondRatio // 175836.80555555556
-    // ~ -3480.6242669554013
-
     console.log(data)
-    console.log('scaleX', scaleX)
-    console.log('fullDurationInMs', fullDurationInMs)
-    console.log('pixelToMillisecondRatio', pixelToMillisecondRatio)
-    console.log('startOffsetMs', offsetMs)
-    console.log('positionX', positionX)
+    // console.log(segmentDuration(data.positionMs, data.startMs))
+
+    // result ~ -49916.15203621112
+    // 288
+    // const percent = 100
+    // const percentTime = data.durationMs / data.endMs * percent
+    // console.log('percentTime >', percentTime)
+    // const percentWidth = data.width * (percentTime / percent)
+    // console.log('percentWidth >', percentWidth)
+    // const scaleX = ((data.width / percentWidth * percent) / percent)
+    //
+    // const fullDurationInMs = data.endMs - data.startMs // 86400000
+    // const offsetMs = data.startMs - data.positionMs // -50641000
+    // const pixelToMillisecondRatio = Math.floor(fullDurationInMs / (data.width * scaleX)) // 288 ms in 1 px (scaled!)
+    // const positionX = (offsetMs / pixelToMillisecondRatio) / pixelToMillisecondRatio // 175836.80555555556
+    // // ~ -3480.6242669554013
+    //
+    // console.log(data)
+    // console.log('scaleX', scaleX)
+    // console.log('fullDurationInMs', fullDurationInMs)
+    // console.log('pixelToMillisecondRatio', pixelToMillisecondRatio)
+    // console.log('startOffsetMs', offsetMs)
+    // console.log('positionX', positionX)
+    // console.log('width', data.width)
 
     return  {
-        scaleX,
-        positionX
+        scaleX: data.scaleX,
+        positionX: 0
     }
+}
+
+const width = window.innerWidth
+const width24hInMs = 86400000 // 24 часа в милисекундах
+
+const segmentsEveryHalfMinute = 24 * 60 * 2
+const arraysEveryHalfMinute = new Array(segmentsEveryHalfMinute).fill(null)
+
+const getPointRelativeToWidth = (point: number) => {
+    return width * (point / width24hInMs * 100) / 100
 }
 
 
 const SimpleCanvasExample: React.FC<{}> = () => {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const canvasRefCtx = useRef<CanvasRenderingContext2D | null>(null)
-    const segments = 24
     const layerRef = React.useRef<Konva.Layer>(null)
     const stageRef = React.useRef<Konva.Stage>(null)
 
     useEffect(() => {
         if(!layerRef || !layerRef.current) return
         if(!stageRef || !stageRef.current) return
-        console.log('pos =>', moment('20.04.2021 14:14:30.000', API_DATE_FORMAT).valueOf())
-        console.log('start =>', moment(startTime, API_DATE_FORMAT).valueOf())
-        console.log('end =>', moment(endTime, API_DATE_FORMAT).valueOf())
-        console.log(width)
-        const test = getPositionSegment({
-            positionMs: moment('21.04.2021 03:12:02.000', API_DATE_FORMAT).valueOf(),
-            startMs: moment(startTime, API_DATE_FORMAT).valueOf(),
-            endMs: moment(endTime, API_DATE_FORMAT).valueOf(),
-            durationMs: 300000,
-            width
-        })
-        console.log(test)
 
-        layerRef.current.scaleX(test.scaleX);
-        layerRef.current.position({ x: -test.positionX, y: 0 });
+        const point = '20.04.2021 13:08:30:000'
+
+        // const test = getPositionSegment({
+        //     positionMs: moment(point, API_DATE_FORMAT).valueOf(),
+        //     startMs: moment(startTime, API_DATE_FORMAT).valueOf(),
+        //     endMs: moment(endTime, API_DATE_FORMAT).valueOf(),
+        //     scaleX: durationZoomLevel[300000],
+        //     width
+        // })
+        // console.log(test)
+
+        // layerRef.current.scaleX(288);
+        // const zxc = moment(startTime, API_DATE_FORMAT).valueOf() - moment(point, API_DATE_FORMAT).valueOf()
+        // const cxz = zxc / (width24hInMs / width) * 288
+        // layerRef.current.position({ x: cxz, y: 0 });
     }, [])
 
 
     const handleWheel = (ev: Konva.KonvaEventObject<WheelEvent>) => {
         ev.evt.preventDefault();
-        
+
         if(!layerRef || !layerRef.current) return
         if(!stageRef || !stageRef.current) return
 
-        let oldScale = layerRef.current.scaleX();
+        let oldScale = layerRef.current.scaleX()
 
-        let pointer = stageRef.current.getPointerPosition();
+        let pointer = stageRef.current.getPointerPosition()
+        let pointerX = pointer?.x || 0
+
 
         let mousePointTo = {
-            // @ts-ignore
-            x: (pointer.x - layerRef.current.x()) / oldScale,
-            // @ts-ignore
-            y: (pointer.y - layerRef.current.y()) / oldScale,
-        };
+            x: (pointerX - layerRef.current.x()) / oldScale,
+        }
 
         let newScale =
-            ev.evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
+            ev.evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy
 
-        if(newScale < 1) return
+        newScale = Math.max(newScale, 1)
 
         layerRef.current.scale({ x: newScale, y: 1 });
 
-        // @ts-ignore
-        let posX = pointer.x - mousePointTo.x * newScale
+        let posX = pointerX - mousePointTo.x * newScale
 
-        // if(posX < 0) posX = 0
-        //
-        if(posX + width * newScale < width) {
-            posX = -width * (newScale - 1)
-        }
+        posX = Math.min(posX, 0)
+        posX = Math.max(posX, width * (1 - newScale))
 
-        let newPos = {
+        layerRef.current.position({
             x: posX,
             y: 0,
-        };
-
-        // console.table({
-        //     pointerX: pointer?.x,
-        //     mousePointToX: mousePointTo.x,
-        //     newScale: newScale,
-        //     posX: posX,
-        //     width: width
-        // })
-        console.log('posx =>', posX)
-
-        layerRef.current.position(newPos);
+        });
     }
-
-    const width = window.innerWidth
-    const width24h = 86400000 // 24 часа в милисекундах
-    const secInPixel = (width24h / 1000) / width
-
-    const getPointRelativeToWidth = (point: number) => {
-        return width * (point / width24h * 100) / 100
-    }
-
-    const segmentsEveryHalfMinute = 24 * 60 * 2
 
     return (
         <>
@@ -249,19 +245,20 @@ const SimpleCanvasExample: React.FC<{}> = () => {
                             />
                         )
                     })}
-
+                </Layer>
+                <Layer>
                     <Rect x={0} y={16} width={width} height={10} fill={'#34404A'} />
 
-                    {new Array(segmentsEveryHalfMinute).fill('').map((item, index) => {
+                    {arraysEveryHalfMinute.map((item, index) => {
                         const isEven = (index + 1) % 2 === 0
-
+                        const xPos = (segmentsEveryHalfMinute / width * index)
                         return (
                             <Rect
-                                scale={{ x: 1, y: 1}}
                                 key={index}
                                 x={segmentsEveryHalfMinute / width * index}
                                 y={16}
-                                width={1}
+                                // @ts-ignore
+                                width={1 / (layerRef?.current?.scaleX() || 1)}
                                 height={isEven ? 5 : 10}
                                 fill={'#7E7E7E'}
                             />
